@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row">
+    <!-- Columna izquierda: Perfil del usuario -->
+    <div class="col-md-6">
+      <div class="card shadow-sm mb-4">
+        <div class="card-body text-center">
+          <!-- Avatar -->
+          <img src="https://ui-avatars.com/api/?name={{ profile.username }}&background=random&size=120" 
+               class="rounded-circle mb-3" alt="avatar">
+
+          <h4 class="card-title">{{ profile.get_full_name|default:profile.username }}</h4>
+          <p class="text-muted">Miembro desde: {{ profile.date_joined|date:"d/m/Y" }}</p>
+
+          {% if request.user != perfil.usuario %}
+           <a href="#" class="btn btn-outline-primary btn-sm mt-2">Editar perfil</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna derecha: info adicional -->
+    <div class="col-md-6">
+      <!-- Info del vendedor -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-dark text-white">
+          Información del Vendedor
+        </div>
+        <div class="card-body">
+          <p><strong>Nombre:</strong> {{ profile.first_name }} {{profile.second_name}}</p>
+          <p><strong>Miembro desde:</strong> {{ profile.date_joined|date:"d/m/Y" }}</p>
+          <p><strong>Tipo:</strong> (Aquí indicar si es vendedor o normal)</p>
+          <!--<a href="#" class="btn btn-primary">Contactar Vendedor</a>-->
+        </div>
+      </div>
+
+      <!-- Info del producto -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+          Información del Contacto
+        </div>
+        <div class="card-body">
+          <!--<p><strong>Estado:</strong> 
+            <span class="badge bg-warning text-dark">Activo</span>
+          </p>-->
+          <p><strong>Teléfono:</strong> (falta por agregar)</p>
+          <p><strong>Email:</strong> {{ profile.email }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

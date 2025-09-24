@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% block title %}Crear Productos{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">Crear Nuevo Producto</h3>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">Título del Producto</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger">
+                                    {{ form.title.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Descripción</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger">
+                                    {{ form.description.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.price.id_for_label }}" class="form-label">Precio</label>
+                                    {{ form.price }}
+                                    {% if form.price.errors %}
+                                        <div class="text-danger">
+                                            {{ form.price.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.category.id_for_label }}" class="form-label">Categoría</label>
+                                    {{ form.category }}
+                                    {% if form.category.errors %}
+                                        <div class="text-danger">
+                                            {{ form.category.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.image.id_for_label }}" class="form-label">Imagen del Producto</label>
+                            {{ form.image }}
+                            {% if form.image.errors %}
+                                <div class="text-danger">
+                                    {{ form.image.errors }}
+                                </div>
+                            {% endif %}
+                            <div class="mt-2">
+                                <button type="button" id="ai-analysis-btn" class="btn btn-outline-primary btn-sm" disabled>
+                                    <i class="fas fa-robot"></i> Auto análisis de IA
+                                </button>
+                                <small class="text-muted d-block mt-1">
+                                    Sube una imagen y usa IA para generar automáticamente título, descripción, categoría y tags
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">Estado</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <div class="text-danger">
+                                    {{ form.status.errors }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Selecciona "Borrador" para guardar sin publicar, o "Publicado" para que sea visible inmediatamente.
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Crear Producto</button>
+                            <a href="{% url 'home' %}" class="btn btn-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de carga para análisis IA -->
+<div class="modal fade" id="ai-analysis-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Analizando...</span>
+                </div>
+                <h5>Analizando imagen con IA</h5>
+                <p class="text-muted">Por favor espera mientras la IA analiza tu imagen y genera la información del producto...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const imageInput = document.querySelector('input[type="file"]');
+    const aiAnalysisBtn = document.getElementById('ai-analysis-btn');
+    const aiAnalysisModal = new bootstrap.Modal(document.getElementById('ai-analysis-modal'));
+    
+    // Habilitar/deshabilitar botón según si hay imagen
+    imageInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            aiAnalysisBtn.disabled = false;
+        } else {
+            aiAnalysisBtn.disabled = true;
+        }
+    });
+    
+    // Manejar clic en botón de análisis IA
+    aiAnalysisBtn.addEventListener('click', function() {
+        if (!imageInput.files || !imageInput.files[0]) {
+            alert('Por favor selecciona una imagen primero');
+            return;
+        }
+        
+        // Mostrar modal de carga
+        aiAnalysisModal.show();
+        
+        // Crear FormData para enviar la imagen
+        const formData = new FormData();
+        formData.append('image', imageInput.files[0]);
+        
+        // Realizar petición AJAX
+        fetch('/api/ai/analyze-product/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            aiAnalysisModal.hide();
+            
+            if (data.success) {
+                // Auto-llenar formulario con datos de IA
+                fillFormWithAIData(data.data);
+                
+                // Mostrar mensaje de éxito
+                showAlert('¡Análisis completado! Los campos han sido llenados automáticamente.', 'success');
+            } else {
+                showAlert('Error en el análisis: ' + (data.error || 'Error desconocido'), 'danger');
+            }
+        })
+        .catch(error => {
+            aiAnalysisModal.hide();
+            console.error('Error:', error);
+            showAlert('Error de conexión. Por favor intenta nuevamente.', 'danger');
+        });
+    });
+    
+    function fillFormWithAIData(data) {
+        // Llenar título
+        if (data.title) {
+            document.querySelector('input[name="title"]').value = data.title;
+        }
+        
+        // Llenar descripción
+        if (data.description) {
+            document.querySelector('textarea[name="description"]').value = data.description;
+        }
+        
+        // Llenar precio (si se sugiere) - COMENTADO para que el usuario lo ingrese manualmente
+        // if (data.price_suggestion) {
+        //     const priceValue = parseFloat(data.price_suggestion.replace(/[^0-9.]/g, ''));
+        //     if (!isNaN(priceValue)) {
+        //         document.querySelector('input[name="price"]').value = priceValue;
+        //     }
+        // }
+        
+        // Mostrar sugerencia de precio en alerta en lugar de llenar automáticamente
+        if (data.price_suggestion) {
+            showAlert(`Precio sugerido: ${data.price_suggestion}`, 'info');
+        }
+        
+        // Llenar tags (si el campo existe)
+        if (data.tags) {
+            const tagsInput = document.querySelector('input[name="tags_input"]');
+            if (tagsInput) {
+                tagsInput.value = data.tags;
+            }
+        }
+        
+        // Intentar seleccionar categoría automáticamente
+        if (data.suggested_category) {
+            const categorySelect = document.querySelector('select[name="category"]');
+            if (categorySelect) {
+                // Buscar opción que coincida con la categoría sugerida
+                const options = categorySelect.querySelectorAll('option');
+                let found = false;
+                
+                for (let option of options) {
+                    if (option.textContent.toLowerCase().includes(data.suggested_category.toLowerCase()) ||
+                        data.suggested_category.toLowerCase().includes(option.textContent.toLowerCase())) {
+                        option.selected = true;
+                        found = true;
+                        showAlert(`Categoría seleccionada automáticamente: ${data.suggested_category}`, 'success');
+                        break;
+                    }
+                }
+                
+                if (!found) {
+                    showAlert(`Categoría sugerida: ${data.suggested_category}`, 'info');
+                }
+            }
+        }
+    }
+    
+    function showAlert(message, type) {
+        // Crear elemento de alerta
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Insertar al inicio del formulario
+        const form = document.querySelector('form');
+        form.insertBefore(alertDiv, form.firstChild);
+        
+        // Auto-ocultar después de 5 segundos
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

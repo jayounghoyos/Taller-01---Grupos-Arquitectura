@@ -1,0 +1,42 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container">
+    <a class="navbar-brand" href="{% url 'home' %}">Productos Online</a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div id="mainNav" class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        {% if user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'products' %}">Mis Productos</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'create_product' %}">Crear Producto</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'my_wishlist' %}">Lista de deseos</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'profile' %}">Perfil</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'logout' %}">Cerrar Sesión</a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'login' %}">Iniciar Sesión</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'register' %}">Registrarse</a>
+          </li>
+          <li class="nav-item">
+            <!-- corregido el typo "Nosostros" -> "Nosotros" -->
+            <a class="nav-link" href="{% url 'about' %}">Sobre Nosotros</a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Acerca de{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h1 class="mb-4">Acerca de Nuestra Plataforma</h1>
+            
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">¿Qué es Productos Online?</h5>
+                    <p class="card-text">
+                        Somos una plataforma web diseñada para conectar vendedores y compradores de manera simple y efectiva. 
+                        Nuestro objetivo es facilitar la publicación y descubrimiento de productos en línea.
+                    </p>
+                    
+                    <h5 class="card-title mt-4">Características Principales</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">✅ Publicación fácil de productos con imágenes</li>
+                        <li class="list-group-item">✅ Sistema de categorías organizado</li>
+                        <li class="list-group-item">🔎 Búsqueda y filtros avanzados</li>
+                        <li class="list-group-item">👨🏻👧🏻 Gestión de perfiles de usuario</li>
+                        <li class="list-group-item">🤙🏻 Interfaz responsiva y moderna</li>
+                    </ul>
+                    
+                    <h5 class="card-title mt-4">¿Cómo Funciona?</h5>
+                    <p class="card-text">
+                        Los usuarios pueden registrarse gratuitamente, crear listados de productos con información detallada, 
+                        subir imágenes y gestionar sus publicaciones. Los compradores pueden explorar el catálogo, 
+                        usar filtros de búsqueda y contactar a los vendedores.
+                    </p>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{% url 'home' %}" class="btn btn-primary">Volver al Catálogo</a>
+                        {% if not user.is_authenticated %}
+                            <a href="{% url 'register' %}" class="btn btn-success">Registrarse Ahora</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
