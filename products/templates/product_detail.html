@@ -63,6 +63,49 @@
                     {% endif %}
                 </div>
             </div>
+
+            <!-- Reseñas -->
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Reseñas</h5>
+                    <span class="text-warning">⭐ Promedio: {{ product.average_rating }}</span>
+                </div>
+                <div class="card-body">
+                    {% if reviews %}
+                        {% for r in reviews %}
+                            <div class="mb-3 border-bottom pb-2">
+                                <div><strong>{{ r.user.username }}</strong> · <span class="text-warning">{{ r.rating }}/5 ⭐</span></div>
+                                {% if r.comment %}<div class="text-muted">{{ r.comment }}</div>{% endif %}
+                                <small class="text-muted">{{ r.created_at|date:"d/m/Y H:i" }}</small>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted mb-0">Sé el primero en dejar una reseña.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if user.is_authenticated and user != product.seller %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Escribir una reseña</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'submit_review' product.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Calificación (1-5)</label>
+                            {{ review_form.rating }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Comentario (opcional)</label>
+                            {{ review_form.comment }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Enviar reseña</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
         </div>
         
         <div class="col-md-4">
@@ -110,4 +153,4 @@
     </div>
 </div>
 
-{% endblock %}>
+{% endblock %}

@@ -5,9 +5,12 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from .models import Product, Category
-from .forms import ProductForm
+from .forms import ProductForm, ReviewForm
 from django.contrib.auth.models import User
 from .models import Product, Category, Wishlist
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
+from django.urls import reverse_lazy
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 def home(request):
@@ -15,23 +18,17 @@ def home(request):
     category_filter = request.GET.get('category')
     price_min = request.GET.get('price_min')
     price_max = request.GET.get('price_max')
-    
-    products = Product.objects.filter(status='published')
-    
-    if searchTerm:
-        products = products.filter(title__icontains=searchTerm)
-    
-    if category_filter:
-        products = products.filter(category_id=category_filter)
-    
-    if price_min:
-        products = products.filter(price__gte=price_min)
-    
-    if price_max:
-        products = products.filter(price__lte=price_max)
-    
+
+    products = (
+        Product.objects
+        .published()
+        .search_title(searchTerm)
+        .by_category_id(category_filter)
+        .price_between(price_min, price_max)
+    )
+
     categories = Category.objects.all()
-    
+
     context = {
         'products': products,
         'searchTerm': searchTerm,
@@ -73,62 +70,79 @@ def user_logout(request):
     logout(request)
     return redirect('home')
 
-@login_required
-def create_product(request):
-    if request.method == 'POST':
-        form = ProductForm(request.POST, request.FILES)
-        if form.is_valid():
-            product = form.save(commit=False)
-            product.seller = request.user
-            product.save()
-            messages.success(request, 'Producto creado exitosamente!')
-            return redirect('home')
-    else:
-        form = ProductForm()
-    
-    # Obtener todas las categorías para el formulario
-    categories = Category.objects.all()
-    
-    return render(request, 'create_product.html', {'form': form, 'categories': categories})
+class ProductCreateView(LoginRequiredMixin, CreateView):
+    model = Product
+    form_class = ProductForm
+    template_name = 'create_product.html'
+    success_url = reverse_lazy('home')
 
-@login_required
-def edit_product(request, pk):
-    product = get_object_or_404(Product, pk=pk, seller=request.user)
-    if request.method == 'POST':
-        form = ProductForm(request.POST, request.FILES, instance=product)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Producto actualizado exitosamente!')
-            return redirect('home')
-    else:
-        form = ProductForm(instance=product)
-    
-    # Obtener todas las categorías para el formulario
-    categories = Category.objects.all()
-    
-    return render(request, 'edit_product.html', {'form': form, 'product': product, 'categories': categories})
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.seller = self.request.user
+        obj.save()
+        messages.success(self.request, 'Producto creado exitosamente!')
+        return super().form_valid(form)
 
-@login_required
-def delete_product(request, pk):
-    product = get_object_or_404(Product, pk=pk, seller=request.user)
-    if request.method == 'POST':
-        product.delete()
-        messages.success(request, 'Producto eliminado exitosamente!')
-        return redirect('home')
-    
-    return render(request, 'delete_product.html', {'product': product})
+class ProductUpdateView(LoginRequiredMixin, UpdateView):
+    model = Product
+    form_class = ProductForm
+    template_name = 'edit_product.html'
+    success_url = reverse_lazy('home')
 
-def product_detail(request, pk):
-    product = get_object_or_404(Product, pk=pk)
+    def get_queryset(self):
+        return Product.objects.for_seller(self.request.user)
 
-    in_wishlist = False
-    if request.user.is_authenticated:
-        in_wishlist = Wishlist.objects.filter(user=request.user, product=product).exists()
+    def form_valid(self, form):
+        messages.success(self.request, 'Producto actualizado exitosamente!')
+        return super().form_valid(form)
 
-    return render(request, 'product_detail.html', {
-        'product': product,
-        'in_wishlist': in_wishlist
-    })
+class ProductDeleteView(LoginRequiredMixin, DeleteView):
+    model = Product
+    template_name = 'delete_product.html'
+    success_url = reverse_lazy('home')
+
+    def get_queryset(self):
+        return Product.objects.for_seller(self.request.user)
+
+class ProductDetailView(DetailView):
+    model = Product
+    template_name = 'product_detail.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        in_wishlist = False
+        if self.request.user.is_authenticated:
+            in_wishlist = Wishlist.objects.filter(user=self.request.user, product=self.object).exists()
+        ctx['in_wishlist'] = in_wishlist
+        ctx['review_form'] = ReviewForm()
+        ctx['reviews'] = self.object.reviews.select_related('user')
+        return ctx
+
+
+class SubmitReviewView(LoginRequiredMixin, FormView):
+    form_class = ReviewForm
+
+    def form_valid(self, form):
+        from .models import Review
+        product = get_object_or_404(Product, pk=self.kwargs['pk'])
+
+        # Moderation strategy (simple): basic profanity filter / length check
+        comment = form.cleaned_data.get('comment', '')
+        rating = form.cleaned_data['rating']
+        if any(bad in (comment or '').lower() for bad in ['spam', 'http://', 'https://']):
+            messages.error(self.request, 'Tu reseña parece contener spam o enlaces no permitidos.')
+            return redirect('product_detail', pk=product.pk)
+
+        Review.objects.update_or_create(
+            product=product,
+            user=self.request.user,
+            defaults={
+                'rating': rating,
+                'comment': comment,
+            }
+        )
+        messages.success(self.request, '¡Gracias por tu reseña!')
+        return redirect('product_detail', pk=product.pk)
 
 def toggle_wishlist(request, pk):
     product = get_object_or_404(Product, pk=pk, status='published')

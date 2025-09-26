@@ -6,6 +6,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from .services import ProductAIService
+from .factory import create_ai_client
 
 
 
@@ -21,7 +22,8 @@ def health_check(request):
     Verifica el estado del servicio de IA
     """
     try:
-        ai_service = ProductAIService()
+        ai_client = create_ai_client()
+        ai_service = ProductAIService(ai_client=ai_client)
         health_status = ai_service.health_check()
         
         if health_status['status'] == 'healthy':
@@ -82,7 +84,8 @@ def analyze_product_image_upload(request):
         
         
         # Realizar análisis completo
-        ai_service = ProductAIService()
+        ai_client = create_ai_client()
+        ai_service = ProductAIService(ai_client=ai_client)
         result = ai_service.analyze_product_complete(image_url, user=request.user)
         
         if result['success']:

@@ -1,7 +1,8 @@
-from django.db.models.signals import post_migrate
+from django.db.models.signals import post_migrate, post_save, post_delete
 from django.dispatch import receiver
 from django.apps import apps
-from .models import Category
+from django.db.models import Avg
+from .models import Category, Review, Product
 
 @receiver(post_migrate)
 def create_default_categories(sender, **kwargs):
@@ -65,3 +66,23 @@ def create_default_categories(sender, **kwargs):
         )
     
     print(f"✅ {len(default_categories)} categorías creadas automáticamente")
+
+
+def _recompute_product_average(product_id: int):
+    try:
+        product = Product.objects.get(id=product_id)
+        avg = product.reviews.aggregate(v=Avg('rating'))['v'] or 0
+        product.average_rating = round(float(avg), 2)
+        product.save(update_fields=['average_rating'])
+    except Product.DoesNotExist:
+        pass
+
+
+@receiver(post_save, sender=Review)
+def on_review_saved(sender, instance: Review, created, **kwargs):
+    _recompute_product_average(instance.product_id)
+
+
+@receiver(post_delete, sender=Review)
+def on_review_deleted(sender, instance: Review, **kwargs):
+    _recompute_product_average(instance.product_id)

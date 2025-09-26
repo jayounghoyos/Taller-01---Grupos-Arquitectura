@@ -22,3 +22,8 @@ class ProductForm(forms.ModelForm):
             'image': forms.FileInput(attrs={'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
         }
+
+
+class ReviewForm(forms.Form):
+    rating = forms.IntegerField(min_value=1, max_value=5)
+    comment = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}), required=False)
