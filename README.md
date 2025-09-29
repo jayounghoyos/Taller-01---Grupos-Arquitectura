@@ -63,99 +63,62 @@ This platform solves the **#1 pain point** for online sellers: **creating detail
 
 ---
 
-##  Quick Start Guide
-> **Note:** This guide assumes basic familiarity with Python and Django.  
-> If you are new to Django, you can still follow along — each step is explained clearly.
+## Setup Guide
 
 ### Prerequisites
 - Python 3.8 or higher
 - pip (Python package installer)
 
-### 1. **Clone the Repository**
+### 1. Clone and Setup Environment
 ```bash
 git clone <Repository-url>
 cd E-Commerce-con-IA-Generativa
-```
 
-### 2. **Set Up Virtual Environment**
-```bash
-# Windows
+# Create virtual environment
 python -m venv env
+
+# Activate virtual environment
+# Windows:
 env\Scripts\activate
-
-# macOS/Linux
-python3 -m venv env
+# macOS/Linux:
 source env/bin/activate
-```
 
-### 3. **Install Dependencies**
-```bash
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 5. **Make Migrations**
+### 2. Database Setup
 ```bash
-python manage.py makemigrations
-```
-
-### 6. **Apply Database Migrations**
-```bash
+# Apply migrations (creates database tables and default categories automatically)
 python manage.py migrate
 ```
 
-### 7. **Set Up Default Categories**
-```bash
-python manage.py setup_categories
-```
+### 3. Create Test Users (Required for Testing)
+You need 2 users to test all features:
 
+User 1 (Seller):
+- Go to: [http://localhost:8000/register/](http://localhost:8000/register/)
+- Create account: `seller_user` / `password123`
+- This user will create products
 
-### 8. **Run Development Server**
+User 2 (Buyer/Reviewer):
+- Go to: [http://localhost:8000/register/](http://localhost:8000/register/)
+- Create account: `buyer_user` / `password123`
+- This user will review products
+
+### 4. Run Development Server
 ```bash
 python manage.py runserver
 ```
 
-### 9. **Access the Platform**
-- **Main Site**: [http://localhost:8000](http://localhost:8000)
-- **Admin Panel**: [http://localhost:8000/admin](http://localhost:8000/admin)
+### 5. Access the Platform
+- Main Site: [http://localhost:8000](http://localhost:8000)
+- Admin Panel: [http://localhost:8000/admin](http://localhost:8000/admin)
+
+### 6. Test the Features
+1. Login as seller_user → Create a product (status: "Published")
+2. Logout → Login as buyer_user → Go to product detail → Leave a review
+3. Check AI features at `/api/ai/` (health check and product analysis)
 
 
 **Note**: This is a Django-based **AI-powered e-commerce platform** that revolutionizes product listing creation. The AI features are the core innovation that sets this platform apart from traditional e-commerce solutions. This is not just another marketplace - it's an intelligent tool that automates the most tedious part of selling online.
-
----
-
-## Architecture: Dependency Inversion (Actividad 3)
-
-We applied the Dependency Inversion Principle (DIP) in the `AI_API` module to decouple business logic from the concrete AI provider.
-
-- Port defined: `AIGenerationClient` in `AI_API/ports.py` (PEP 544 `Protocol`).
-- Application service `ProductAIService` now depends on the port and accepts DI through its constructor. It defaults to `Gemma3Service` adapter to preserve backwards compatibility.
-- Views (`AI_API/views.py`) call `ProductAIService`, no longer importing the concrete adapter directly.
-
-Benefits
-- Replace the AI engine without changing business rules.
-- Easier testing by injecting fakes/mocks.
-- Infrastructure details (endpoints, headers, timeouts) isolated from application layer.
-
-Key entry points
-- Port: `AI_API/ports.py`
-- Adapter: `AI_API/services.py` (`Gemma3Service`)
-- Application service: `AI_API/services.py` (`ProductAIService`)
-- Wiring: `AI_API/views.py`
-
-Example: injecting a fake client for tests
-```python
-from AI_API.services import ProductAIService
-
-class FakeAIClient:
-    def generate_response(self, *args, **kwargs):
-        return {
-            "success": True,
-            "response": '{"title": "Demo", "description": "...", "suggested_category": "Hogar", "tags": "a,b,c", "price_suggestion": "10"}',
-            "processing_time": 0.01,
-        }
-
-    def health_check(self):
-        return {"status": "healthy"}
-
-service = ProductAIService(ai_client=FakeAIClient())
-```# Taller-01---Grupos-Arquitectura

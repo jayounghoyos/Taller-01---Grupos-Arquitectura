@@ -1,11 +1,12 @@
-# Setup Instructions - E-Commerce Platform with AI-Generative Features
+SETUP INSTRUCTIONS - E-Commerce Platform with AI-Generative Features
+=====================================================================
 
-## Prerequisites
+PREREQUISITES:
 - Python 3.8 or higher
 - pip (Python package installer)
 
-## Step 1: Clone and Setup Environment
-```bash
+STEP 1: CLONE AND SETUP ENVIRONMENT
+===================================
 git clone <Repository-url>
 cd E-Commerce-con-IA-Generativa
 
@@ -20,63 +21,64 @@ source env/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
-```
 
-## Step 2: Database Setup
-```bash
+STEP 2: DATABASE SETUP
+======================
 # Apply migrations (creates database tables and default categories automatically)
 python manage.py migrate
-```
 
-**Note:** No need to run `makemigrations` - migrations are already created.
-The `migrate` command will automatically create:
+NOTE: No need to run makemigrations - migrations are already created.
+The migrate command will automatically create:
 - All database tables
 - Default product categories (Electrónica, Ropa, Hogar, etc.)
 - Review system tables
 
-## Step 3: Create Test Users (Required for Testing)
+STEP 3: CREATE TEST USERS (REQUIRED FOR TESTING)
+=================================================
 You need 2 users to test all features:
 
-### User 1 (Seller):
-- Go to: [http://localhost:8000/register/](http://localhost:8000/register/)
-- Create account: `seller_user` / `password123`
+USER 1 (SELLER):
+- Go to: http://localhost:8000/register/
+- Create account: seller_user / password123
 - This user will create products
 
-### User 2 (Buyer/Reviewer):
-- Go to: [http://localhost:8000/register/](http://localhost:8000/register/)
-- Create account: `buyer_user` / `password123`
+USER 2 (BUYER/REVIEWER):
+- Go to: http://localhost:8000/register/
+- Create account: buyer_user / password123
 - This user will review products
 
-## Step 4: Run Development Server
-```bash
+STEP 4: RUN DEVELOPMENT SERVER
+===============================
 python manage.py runserver
-```
 
-## Step 5: Access the Platform
-- Main Site: [http://localhost:8000](http://localhost:8000)
-- Admin Panel: [http://localhost:8000/admin](http://localhost:8000/admin)
+STEP 5: ACCESS THE PLATFORM
+============================
+- Main Site: http://localhost:8000
+- Admin Panel: http://localhost:8000/admin
 
-## Step 6: Test the Features
+STEP 6: TEST THE FEATURES
+==========================
 1. Login as seller_user → Create a product (status: "Published")
 2. Logout → Login as buyer_user → Go to product detail → Leave a review
-3. Check AI features at `/api/ai/` (health check and product analysis)
+3. Check AI features at /api/ai/ (health check and product analysis)
 
-## Configuration Files
+CONFIGURATION FILES:
+====================
 - No configuration files need to be modified
 - Database: SQLite (default, no setup required)
-- AI Provider: Gemma (default, configurable via `settings.AI_PROVIDER`)
+- AI Provider: Gemma (default, configurable via settings.AI_PROVIDER)
 
-## Troubleshooting
-```bash
-# If categories don't appear:
+TROUBLESHOOTING:
+================
+If categories don't appear:
 python manage.py migrate
 
-# If you need to reset everything:
+If you need to reset everything:
 python manage.py flush
 python manage.py migrate
-```
 
-## Features to Test
+FEATURES TO TEST:
+=================
 - User registration/login
 - Product CRUD (Create, Read, Update, Delete)
 - Product search and filtering
@@ -85,7 +87,8 @@ python manage.py migrate
 - AI integration (product analysis)
 - Admin panel access
 
-## Architecture Patterns Implemented
+ARCHITECTURE PATTERNS IMPLEMENTED:
+==================================
 - Dependency Inversion (AI providers)
 - Strategy + Factory (AI client selection)
 - Class-Based Views (CRUD operations)

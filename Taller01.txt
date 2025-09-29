@@ -1,0 +1,7 @@
+Integrantes: 
+- Juan Andrés Young Hoyos
+- Isabela Mendoza
+
+Link del repo: https://github.com/jayounghoyos/Taller-01---Grupos-Arquitectura.git
+
+La explicación de la solución de cada punto irá en la Wiki del proyecto.
