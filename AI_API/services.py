@@ -1,5 +1,6 @@
 import requests
 import time
+import json
 from typing import Dict, List, Any, Optional
 from django.conf import settings
 from django.utils import timezone
@@ -11,7 +12,7 @@ LIGHTNING_AI_API_KEY = getattr(settings, 'LIGHTNING_AI_API_KEY', 'gemma3-litserv
 MODEL_NAME = 'google/gemma-3-4b-it'
 DEFAULT_MAX_TOKENS = 256
 DEFAULT_TEMPERATURE = 0.7
-DEFAULT_TIMEOUT = 300
+DEFAULT_TIMEOUT = 30  # Reducido para evitar timeouts
 
 class Gemma3Service:
     """
@@ -24,6 +25,13 @@ class Gemma3Service:
         self.session.headers.update({
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {self.config.api_key}'
+        })
+        # Configurar timeout y headers más robustos
+        self.session.timeout = 30
+        self.session.headers.update({
+            'User-Agent': 'Django-AI-Client/1.0',
+            'Connection': 'keep-alive',
+            'Accept': 'application/json',
         })
     
     def _get_active_config(self) -> AIConfiguration:
@@ -71,7 +79,7 @@ class Gemma3Service:
             "messages": self._build_messages(prompt, image_urls),
             "max_tokens": max_tokens or self.config.max_tokens_default,
             "temperature": temperature or self.config.temperature_default,
-            "stream": False
+            "stream": True  # Cambiado a True para compatibilidad con Lightning AI
         }
     
     def generate_response(self, prompt: str, image_urls: List[str] = None,
@@ -113,23 +121,58 @@ class Gemma3Service:
             # Construir payload
             payload = self._build_payload(prompt, image_urls, max_tokens, temperature)
             
-            # Hacer request al endpoint
+            # Hacer request al endpoint - usar el endpoint correcto
+            endpoint_url = f"{self.config.lightning_endpoint}/v1/chat/completions"
+            print(f"Making request to: {endpoint_url}")
+            print(f"Payload: {payload}")
+            
             response = self.session.post(
-                f"{self.config.lightning_endpoint}/v1/chat/completions",
+                endpoint_url,
                 json=payload,
                 timeout=self.config.timeout_seconds
             )
             
             response.raise_for_status()
-            response_data = response.json()
+            
+            # Manejar respuesta streaming (como client.py)
+            response_text = ""
+            tokens_used = 0
+            
+            if response.headers.get('content-type', '').startswith('text/event-stream'):
+                # Respuesta streaming
+                for line in response.iter_lines():
+                    if line:
+                        line = line.decode('utf-8')
+                        if line.startswith('data: '):
+                            data = line[6:]  # Remover 'data: '
+                            if data.strip() == '[DONE]':
+                                break
+                            try:
+                                chunk = json.loads(data)
+                                if 'choices' in chunk and len(chunk['choices']) > 0:
+                                    delta = chunk['choices'][0].get('delta', {})
+                                    if 'content' in delta and delta['content'] is not None:
+                                        response_text += delta['content']
+                                    
+                                    # Extraer tokens del último chunk si está disponible
+                                    if 'usage' in chunk and chunk['usage']:
+                                        usage = chunk['usage']
+                                        tokens_used = usage.get('total_tokens', 0)
+                            except json.JSONDecodeError:
+                                continue
+            else:
+                # Respuesta normal (fallback)
+                response_data = response.json()
+                if 'choices' in response_data and len(response_data['choices']) > 0:
+                    response_text = response_data['choices'][0]['message']['content']
+                    usage = response_data.get('usage', {})
+                    tokens_used = usage.get('total_tokens', 0)
             
             # Procesar respuesta
             processing_time = time.time() - start_time
             
-            if 'choices' in response_data and len(response_data['choices']) > 0:
-                response_text = response_data['choices'][0]['message']['content']
-                usage = response_data.get('usage', {})
-                tokens_used = usage.get('total_tokens', 0)
+            if response_text:
+                print(f"✅ Respuesta completa recibida: '{response_text}'")
                 
                 # Actualizar request con respuesta exitosa
                 ai_request.status = 'completed'
@@ -138,7 +181,6 @@ class Gemma3Service:
                 ai_request.processing_time = processing_time
                 ai_request.save()
                 
-             
                 return {
                     'success': True,
                     'response': response_text,
@@ -159,15 +201,16 @@ class Gemma3Service:
             ai_request.processing_time = processing_time
             ai_request.save()
             
-            
-            
-            
+            print(f"Request error: {str(e)}")
+            print(f"Endpoint: {self.config.lightning_endpoint}")
+            print(f"API Key: {self.config.api_key}")
             
             return {
                 'success': False,
                 'error': error_msg,
                 'processing_time': processing_time,
-                'request_id': ai_request.id
+                'request_id': ai_request.id,
+                'endpoint': self.config.lightning_endpoint
             }
             
         except Exception as e:

@@ -67,24 +67,35 @@ def analyze_product_image_upload(request):
         
         # Convertir imagen a base64 para enviar directamente
         import base64
+        from PIL import Image
+        import io
         
-        # Leer el contenido de la imagen
+        # Leer y redimensionar la imagen para reducir el tamaño
         image_content = image_file.read()
+        
+        # Abrir imagen con PIL
+        image = Image.open(io.BytesIO(image_content))
+        
+        # Redimensionar si es muy grande (máximo 800x600)
+        if image.width > 800 or image.height > 600:
+            image.thumbnail((800, 600), Image.Resampling.LANCZOS)
+        
+        # Convertir a JPEG para reducir tamaño
+        output = io.BytesIO()
+        image.convert('RGB').save(output, format='JPEG', quality=85)
+        image_content = output.getvalue()
         
         # Convertir a base64
         image_base64 = base64.b64encode(image_content).decode('utf-8')
         
-        # Determinar el tipo MIME
-        content_type = image_file.content_type or 'image/jpeg'
-        
         # Crear URL de datos (data URL)
-        image_url = f"data:{content_type};base64,{image_base64}"
-        
-        # Log para debugging
+        image_url = f"data:image/jpeg;base64,{image_base64}"
         
         
-        # Realizar análisis completo
-        ai_client = create_ai_client()
+        
+        
+        # Realizar análisis completo - usar el adaptador que funciona
+        ai_client = create_ai_client(provider='clientpy')
         ai_service = ProductAIService(ai_client=ai_client)
         result = ai_service.analyze_product_complete(image_url, user=request.user)
         

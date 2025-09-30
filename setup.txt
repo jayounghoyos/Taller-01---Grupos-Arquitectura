@@ -77,6 +77,77 @@ If you need to reset everything:
 python manage.py flush
 python manage.py migrate
 
+DEPLOY LIGHTNING AI SERVER
+============================
+Para el uso de la funcionalidad de IA en este proyecto es necesario desplegar 
+el modelo Gemma para análisis de imágenes (solo en caso de que quieras usar la 
+IA integrada en el proyecto).
+
+1) Primero sería obtener los acces tokens del modelo de Gemma en este link y 
+   obtener acceso al modelo: https://huggingface.co/google/gemma-3-4b-it
+
+2) Por medio de este link puedes clonar el despliegue del modelo para que te 
+   sea más facil: https://lightning.ai/sitammeur/studios/deploy-gemma-3-multimodal-multilingual-model?view=public&section=featured&query=multimoda
+   - Buscas el botón 'clone'
+   - Te va a llevar a una página de Lightning AI Studio
+   - Reemplaza el código de client.py por el código proporcionado
+   - Reemplaza el código de server.py por el código proporcionado
+   - Crea un .env con el acces token de huggingFace para hacer uso de Gemma model
+   - Luego crea el 'API builder'
+   - Presionas 'Serving' donde debes seleccionar 'API builder' e install
+   - Te va a aparecer un apartado con el api builder
+   - Luego vas y presionas 'New API' y pones el puerto '8001' y 'auto start' 
+     con el comando 'python server.py' para poder iniciar el servidor
+
+CONFIGURAR EL PROYECTO PARA USAR TU PROPIO SERVIDOR LIGHTNING AI
+=================================================================
+Una vez que hayas desplegado tu propio servidor Lightning AI, necesitas actualizar 
+la configuración del proyecto Django para que use tu endpoint personalizado:
+
+PASO 1: OBTENER TU URL DEL SERVIDOR LIGHTNING AI
+================================================
+Después de crear tu API Builder, obtendrás una URL única como:
+- https://8001-01k4ap2fswtrsc3fyamsj261fp.cloudspaces.litng.ai (Ejemplo)
+
+PASO 2: ACTUALIZAR LA CONFIGURACIÓN EN DJANGO
+==============================================
+Edita el archivo productplatform/settings.py y busca la sección de configuración de IA:
+
+# Configuración de Lightning AI
+LIGHTNING_AI_ENDPOINT = 'https://8001-01k6bxyd24206n6bm11najcms8.cloudspaces.litng.ai'  # Cambia la URL
+LIGHTNING_AI_API_KEY = 'gemma3-litserve'  # Deja este valor
+
+Reemplaza la URL https://8001-01k6bxyd24206n6bm11najcms8.cloudspaces.litng.ai 
+por la URL que obtuviste del propio API Builder.
+
+PASO 3: CONFIGURACIÓN MANUAL
+===========================================
+Manualmente, actualiza el archivo client.py:
+
+client = OpenAI(
+    base_url="https://8001-01k6bxyd24206n6bm11najcms8.cloudspaces.litng.ai/v1/",  # Cambia por tu URL
+    api_key="gemma3-litserve",  # Mantén este valor
+)
+
+PASO 4: VERIFICAR LA CONFIGURACIÓN
+===================================
+Para verificar que todo funciona correctamente:
+
+1. Asegúrarse que el servidor Lightning AI esté corriendo:
+   ⚡ ~ python server.py
+   INFO:     Uvicorn running on http://0.0.0.0:8001
+
+2. Ejecuta el servidor Django:
+   python manage.py runserver
+
+3. Prueba la funcionalidad de IA subiendo una imagen en /product/create/
+
+NOTA IMPORTANTE SOBRE CONECTIVIDAD:
+===================================
+Si experimenta errores de conexión (ConnectionResetError), el sistema 
+automáticamente usará un servicio mock como fallback, asegurando que la 
+aplicación siempre funcione. Esto es normal y esperado si ocurre algo.
+
 FEATURES TO TEST:
 =================
 - User registration/login
